@@ -1,37 +1,41 @@
 import { Router } from 'express'
-import { db } from '../db.js'
-import { upload } from '../upload.js'
+import { dbAll, dbBatch } from '../db.js'
+import { upload, persistUpload } from '../upload.js'
 
 const router = Router()
 
-function getAllSettings() {
-  const rows = db.prepare('SELECT key, value FROM settings').all()
+async function getAllSettings() {
+  const rows = await dbAll('SELECT key, value FROM settings')
   return Object.fromEntries(rows.map((r) => [r.key, r.value]))
 }
 
-router.get('/', (req, res) => {
-  res.json(getAllSettings())
+router.get('/', async (req, res) => {
+  res.json(await getAllSettings())
 })
 
-router.put('/', (req, res) => {
-  const upsert = db.prepare(
-    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+router.put('/', async (req, res) => {
+  await dbBatch(
+    Object.entries(req.body).map(([k, v]) => ({
+      sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      args: [k, String(v ?? '')],
+    }))
   )
-  const tx = db.transaction((entries) => {
-    entries.forEach(([k, v]) => upsert.run(k, String(v ?? '')))
-  })
-  tx(Object.entries(req.body))
-  res.json(getAllSettings())
+  res.json(await getAllSettings())
 })
 
-router.post('/photo', upload.single('file'), (req, res) => {
+router.post('/photo', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Imagem obrigatória' })
   const key = req.body.key
   const allowed = ['cover_photo', 'hero_photo_1', 'hero_photo_2']
   if (!allowed.includes(key)) return res.status(400).json({ error: 'key inválida' })
-  const url = `/uploads/${req.file.filename}`
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, url)
-  res.json(getAllSettings())
+  const url = await persistUpload(req.file)
+  await dbBatch([
+    {
+      sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      args: [key, url],
+    },
+  ])
+  res.json(await getAllSettings())
 })
 
 export default router

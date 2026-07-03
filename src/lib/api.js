@@ -23,6 +23,10 @@ const put = (path, body) => request(path, { method: 'PUT', body: body instanceof
 const del = (path) => request(path, { method: 'DELETE' })
 
 export const api = {
+  auth: {
+    status: () => get('/auth/status'),
+    logout: () => post('/auth/logout'),
+  },
   settings: {
     get: () => get('/settings'),
     update: (data) => put('/settings', data),

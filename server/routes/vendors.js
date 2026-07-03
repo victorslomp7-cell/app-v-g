@@ -1,18 +1,16 @@
 import { Router } from 'express'
 import { randomUUID } from 'crypto'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { unlinkSync, existsSync } from 'fs'
-import { db } from '../db.js'
-import { upload } from '../upload.js'
+import { dbGet, dbAll, dbRun } from '../db.js'
+import { upload, persistUpload, removeUpload } from '../upload.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
 
-router.get('/', (req, res) => {
-  const vendors = db.prepare('SELECT * FROM vendors ORDER BY name COLLATE NOCASE').all()
-  const payments = db.prepare('SELECT * FROM vendor_payments').all()
-  const attachments = db.prepare('SELECT * FROM vendor_attachments').all()
+router.get('/', async (req, res) => {
+  const [vendors, payments, attachments] = await Promise.all([
+    dbAll('SELECT * FROM vendors ORDER BY name COLLATE NOCASE'),
+    dbAll('SELECT * FROM vendor_payments'),
+    dbAll('SELECT * FROM vendor_attachments'),
+  ])
   res.json(
     vendors.map((v) => ({
       ...v,
@@ -22,99 +20,99 @@ router.get('/', (req, res) => {
   )
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const v = req.body
   const id = randomUUID()
-  db.prepare(
+  await dbRun(
     `INSERT INTO vendors (id, name, category, phone, email, instagram, status, agreed_value, notes)
-     VALUES (@id, @name, @category, @phone, @email, @instagram, @status, @agreed_value, @notes)`
-  ).run({
-    id,
-    name: v.name,
-    category: v.category || null,
-    phone: v.phone || null,
-    email: v.email || null,
-    instagram: v.instagram || null,
-    status: v.status || 'a_contatar',
-    agreed_value: v.agreed_value ?? null,
-    notes: v.notes || null,
-  })
-  res.status(201).json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(id))
+     VALUES (@id, @name, @category, @phone, @email, @instagram, @status, @agreed_value, @notes)`,
+    {
+      id,
+      name: v.name,
+      category: v.category || null,
+      phone: v.phone || null,
+      email: v.email || null,
+      instagram: v.instagram || null,
+      status: v.status || 'a_contatar',
+      agreed_value: v.agreed_value ?? null,
+      notes: v.notes || null,
+    }
+  )
+  res.status(201).json(await dbGet('SELECT * FROM vendors WHERE id = ?', [id]))
 })
 
-router.put('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id)
+router.put('/:id', async (req, res) => {
+  const existing = await dbGet('SELECT * FROM vendors WHERE id = ?', [req.params.id])
   if (!existing) return res.status(404).json({ error: 'Fornecedor não encontrado' })
   const v = { ...existing, ...req.body, id: req.params.id }
-  db.prepare(
+  await dbRun(
     `UPDATE vendors SET name=@name, category=@category, phone=@phone, email=@email, instagram=@instagram,
-     status=@status, agreed_value=@agreed_value, notes=@notes WHERE id=@id`
-  ).run(v)
-  res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id))
+     status=@status, agreed_value=@agreed_value, notes=@notes WHERE id=@id`,
+    v
+  )
+  res.json(await dbGet('SELECT * FROM vendors WHERE id = ?', [req.params.id]))
 })
 
-router.delete('/:id', (req, res) => {
-  const atts = db.prepare('SELECT * FROM vendor_attachments WHERE vendor_id = ?').all(req.params.id)
-  atts.forEach((a) => {
-    const p = path.join(__dirname, '..', 'uploads', a.filename)
-    if (existsSync(p)) unlinkSync(p)
-  })
-  db.prepare('DELETE FROM vendors WHERE id = ?').run(req.params.id)
+router.delete('/:id', async (req, res) => {
+  const atts = await dbAll('SELECT * FROM vendor_attachments WHERE vendor_id = ?', [req.params.id])
+  await Promise.all(atts.map((a) => removeUpload(a.filename)))
+  await dbRun('DELETE FROM vendors WHERE id = ?', [req.params.id])
   res.status(204).end()
 })
 
 // Payments
-router.post('/:id/payments', (req, res) => {
+router.post('/:id/payments', async (req, res) => {
   const p = req.body
   const id = randomUUID()
-  db.prepare(
+  await dbRun(
     `INSERT INTO vendor_payments (id, vendor_id, description, amount, due_date, paid, paid_date)
-     VALUES (@id, @vendor_id, @description, @amount, @due_date, @paid, @paid_date)`
-  ).run({
-    id,
-    vendor_id: req.params.id,
-    description: p.description || null,
-    amount: p.amount || 0,
-    due_date: p.due_date || null,
-    paid: p.paid ? 1 : 0,
-    paid_date: p.paid_date || null,
-  })
-  res.status(201).json(db.prepare('SELECT * FROM vendor_payments WHERE id = ?').get(id))
+     VALUES (@id, @vendor_id, @description, @amount, @due_date, @paid, @paid_date)`,
+    {
+      id,
+      vendor_id: req.params.id,
+      description: p.description || null,
+      amount: p.amount || 0,
+      due_date: p.due_date || null,
+      paid: p.paid ? 1 : 0,
+      paid_date: p.paid_date || null,
+    }
+  )
+  res.status(201).json(await dbGet('SELECT * FROM vendor_payments WHERE id = ?', [id]))
 })
 
-router.put('/:id/payments/:paymentId', (req, res) => {
-  const existing = db.prepare('SELECT * FROM vendor_payments WHERE id = ?').get(req.params.paymentId)
+router.put('/:id/payments/:paymentId', async (req, res) => {
+  const existing = await dbGet('SELECT * FROM vendor_payments WHERE id = ?', [req.params.paymentId])
   if (!existing) return res.status(404).json({ error: 'Parcela não encontrada' })
   const p = { ...existing, ...req.body, id: req.params.paymentId }
-  db.prepare(
+  await dbRun(
     `UPDATE vendor_payments SET description=@description, amount=@amount, due_date=@due_date,
-     paid=@paid, paid_date=@paid_date WHERE id=@id`
-  ).run({ ...p, paid: p.paid ? 1 : 0 })
-  res.json(db.prepare('SELECT * FROM vendor_payments WHERE id = ?').get(req.params.paymentId))
+     paid=@paid, paid_date=@paid_date WHERE id=@id`,
+    { ...p, paid: p.paid ? 1 : 0 }
+  )
+  res.json(await dbGet('SELECT * FROM vendor_payments WHERE id = ?', [req.params.paymentId]))
 })
 
-router.delete('/:id/payments/:paymentId', (req, res) => {
-  db.prepare('DELETE FROM vendor_payments WHERE id = ?').run(req.params.paymentId)
+router.delete('/:id/payments/:paymentId', async (req, res) => {
+  await dbRun('DELETE FROM vendor_payments WHERE id = ?', [req.params.paymentId])
   res.status(204).end()
 })
 
 // Attachments
-router.post('/:id/attachments', upload.single('file'), (req, res) => {
+router.post('/:id/attachments', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' })
+  const url = await persistUpload(req.file)
   const id = randomUUID()
-  db.prepare(
-    `INSERT INTO vendor_attachments (id, vendor_id, filename, original_name, mime) VALUES (?, ?, ?, ?, ?)`
-  ).run(id, req.params.id, req.file.filename, req.file.originalname, req.file.mimetype)
-  res.status(201).json(db.prepare('SELECT * FROM vendor_attachments WHERE id = ?').get(id))
+  await dbRun(
+    `INSERT INTO vendor_attachments (id, vendor_id, filename, original_name, mime) VALUES (?, ?, ?, ?, ?)`,
+    [id, req.params.id, url, req.file.originalname, req.file.mimetype]
+  )
+  res.status(201).json(await dbGet('SELECT * FROM vendor_attachments WHERE id = ?', [id]))
 })
 
-router.delete('/:id/attachments/:attachmentId', (req, res) => {
-  const att = db.prepare('SELECT * FROM vendor_attachments WHERE id = ?').get(req.params.attachmentId)
-  if (att) {
-    const p = path.join(__dirname, '..', 'uploads', att.filename)
-    if (existsSync(p)) unlinkSync(p)
-  }
-  db.prepare('DELETE FROM vendor_attachments WHERE id = ?').run(req.params.attachmentId)
+router.delete('/:id/attachments/:attachmentId', async (req, res) => {
+  const att = await dbGet('SELECT * FROM vendor_attachments WHERE id = ?', [req.params.attachmentId])
+  if (att) await removeUpload(att.filename)
+  await dbRun('DELETE FROM vendor_attachments WHERE id = ?', [req.params.attachmentId])
   res.status(204).end()
 })
 

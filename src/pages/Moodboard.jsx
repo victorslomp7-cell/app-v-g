@@ -79,7 +79,7 @@ export default function Moodboard() {
               onClick={() => setLightbox(item)}
               className="mb-3 block w-full break-inside-avoid rounded-xl2 overflow-hidden shadow-soft group relative"
             >
-              <img src={`/uploads/${item.filename}`} alt={item.caption || ''} className="w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <img src={item.filename} alt={item.caption || ''} className="w-full object-cover group-hover:scale-105 transition-transform duration-300" />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <p className="text-xs text-linen text-left truncate">{item.category}</p>
               </div>
@@ -115,7 +115,7 @@ export default function Moodboard() {
       {lightbox && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink-950/80 p-4" onClick={() => setLightbox(null)}>
           <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-            <img src={`/uploads/${lightbox.filename}`} alt="" className="w-full rounded-xl2 max-h-[80vh] object-contain bg-ink-950" />
+            <img src={lightbox.filename} alt="" className="w-full rounded-xl2 max-h-[80vh] object-contain bg-ink-950" />
             <div className="flex items-center justify-between mt-3">
               <div>
                 <p className="text-linen text-sm font-medium">{lightbox.category}</p>

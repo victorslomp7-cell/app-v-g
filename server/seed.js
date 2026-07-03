@@ -87,48 +87,44 @@ const DEFAULT_SETTINGS = {
   share_token: randomUUID(),
 }
 
-export function seedIfEmpty(db) {
-  const guestCount = db.prepare('SELECT COUNT(*) AS c FROM tasks').get().c
-  if (guestCount === 0) {
-    const insertTask = db.prepare(
-      'INSERT INTO tasks (id, title, category, phase, position) VALUES (?, ?, ?, ?, ?)'
+export async function seedIfEmpty({ dbGet, dbBatch }) {
+  const taskCount = (await dbGet('SELECT COUNT(*) AS c FROM tasks')).c
+  if (taskCount === 0) {
+    await dbBatch(
+      DEFAULT_CHECKLIST.map(([phase, title, category], i) => ({
+        sql: 'INSERT INTO tasks (id, title, category, phase, position) VALUES (?, ?, ?, ?, ?)',
+        args: [randomUUID(), title, category, phase, i],
+      }))
     )
-    const tx = db.transaction((rows) => {
-      rows.forEach(([phase, title, category], i) => {
-        insertTask.run(randomUUID(), title, category, phase, i)
-      })
-    })
-    tx(DEFAULT_CHECKLIST)
   }
 
-  const catCount = db.prepare('SELECT COUNT(*) AS c FROM budget_categories').get().c
+  const catCount = (await dbGet('SELECT COUNT(*) AS c FROM budget_categories')).c
   if (catCount === 0) {
-    const insertCat = db.prepare(
-      'INSERT INTO budget_categories (id, name, planned_amount, position) VALUES (?, ?, ?, ?)'
+    await dbBatch(
+      DEFAULT_BUDGET_CATEGORIES.map(([name, planned], i) => ({
+        sql: 'INSERT INTO budget_categories (id, name, planned_amount, position) VALUES (?, ?, ?, ?)',
+        args: [randomUUID(), name, planned, i],
+      }))
     )
-    const tx = db.transaction((rows) => {
-      rows.forEach(([name, planned], i) => insertCat.run(randomUUID(), name, planned, i))
-    })
-    tx(DEFAULT_BUDGET_CATEGORIES)
   }
 
-  const timelineCount = db.prepare('SELECT COUNT(*) AS c FROM timeline_events').get().c
+  const timelineCount = (await dbGet('SELECT COUNT(*) AS c FROM timeline_events')).c
   if (timelineCount === 0) {
-    const insertEvt = db.prepare(
-      'INSERT INTO timeline_events (id, time, title, description, position) VALUES (?, ?, ?, ?, ?)'
+    await dbBatch(
+      DEFAULT_TIMELINE.map(([time, title, description], i) => ({
+        sql: 'INSERT INTO timeline_events (id, time, title, description, position) VALUES (?, ?, ?, ?, ?)',
+        args: [randomUUID(), time, title, description, i],
+      }))
     )
-    const tx = db.transaction((rows) => {
-      rows.forEach(([time, title, description], i) => insertEvt.run(randomUUID(), time, title, description, i))
-    })
-    tx(DEFAULT_TIMELINE)
   }
 
-  const settingsCount = db.prepare('SELECT COUNT(*) AS c FROM settings').get().c
+  const settingsCount = (await dbGet('SELECT COUNT(*) AS c FROM settings')).c
   if (settingsCount === 0) {
-    const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-    const tx = db.transaction((entries) => {
-      entries.forEach(([k, v]) => insertSetting.run(k, v))
-    })
-    tx(Object.entries(DEFAULT_SETTINGS))
+    await dbBatch(
+      Object.entries(DEFAULT_SETTINGS).map(([k, v]) => ({
+        sql: 'INSERT INTO settings (key, value) VALUES (?, ?)',
+        args: [k, v],
+      }))
+    )
   }
 }

@@ -245,7 +245,7 @@ export default function Vendors() {
               <div className="space-y-2 mb-3">
                 {detail.attachments.map((a) => (
                   <div key={a.id} className="flex items-center justify-between rounded-lg border border-ink-900/10 dark:border-linen/10 px-3 py-2">
-                    <a href={`/uploads/${a.filename}`} target="_blank" rel="noreferrer" className="text-sm text-sage-700 dark:text-sage-300 hover:underline truncate">
+                    <a href={a.filename} target="_blank" rel="noreferrer" className="text-sm text-sage-700 dark:text-sage-300 hover:underline truncate">
                       {a.original_name}
                     </a>
                     <button onClick={() => removeAttachment(a)} className="text-clay-600 p-2 -m-1"><X size={14} /></button>

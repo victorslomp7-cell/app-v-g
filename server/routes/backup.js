@@ -1,14 +1,26 @@
 import { Router } from 'express'
 import { randomUUID } from 'crypto'
-import { db, dbPath } from '../db.js'
+import { existsSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { dbAll, dbRun } from '../db.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const localDbPath = join(__dirname, '..', 'data', 'vg.db')
+const usingRemoteDb = !!process.env.TURSO_DATABASE_URL
 
 const router = Router()
 
 router.get('/download', (req, res) => {
-  res.download(dbPath, `vg-casamento-backup-${new Date().toISOString().slice(0, 10)}.db`)
+  if (usingRemoteDb || !existsSync(localDbPath)) {
+    return res
+      .status(400)
+      .json({ error: 'O app está rodando com um banco de dados na nuvem — use "Exportar tudo (.json)" para fazer backup.' })
+  }
+  res.download(localDbPath, `vg-casamento-backup-${new Date().toISOString().slice(0, 10)}.db`)
 })
 
-router.get('/export.json', (req, res) => {
+router.get('/export.json', async (req, res) => {
   const tables = [
     'settings',
     'guests',
@@ -25,21 +37,21 @@ router.get('/export.json', (req, res) => {
     'documents',
   ]
   const data = {}
-  tables.forEach((t) => {
-    data[t] = db.prepare(`SELECT * FROM ${t}`).all()
-  })
+  for (const t of tables) {
+    data[t] = await dbAll(`SELECT * FROM ${t}`)
+  }
   res.setHeader('Content-Disposition', `attachment; filename="vg-export-${new Date().toISOString().slice(0, 10)}.json"`)
   res.json(data)
 })
 
-router.post('/regenerate-token', (req, res) => {
+router.post('/regenerate-token', async (req, res) => {
   const { kind } = req.body // 'rsvp' | 'share'
   if (!['rsvp', 'share'].includes(kind)) return res.status(400).json({ error: 'kind inválido' })
   const token = randomUUID()
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(
+  await dbRun('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [
     `${kind}_token`,
-    token
-  )
+    token,
+  ])
   res.json({ token })
 })
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, DatabaseBackup, Save } from 'lucide-react'
+import { Download, DatabaseBackup, Save, LogOut } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useSettings } from '../lib/SettingsContext.jsx'
 import { PageHeader } from '../components/ui.jsx'
@@ -9,10 +9,20 @@ export default function Settings() {
   const { settings, update } = useSettings()
   const [form, setForm] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [authRequired, setAuthRequired] = useState(false)
 
   useEffect(() => {
     if (settings) setForm(settings)
   }, [settings])
+
+  useEffect(() => {
+    api.auth.status().then((s) => setAuthRequired(s.authRequired))
+  }, [])
+
+  const logout = async () => {
+    await api.auth.logout()
+    window.location.reload()
+  }
 
   if (!form) return null
 
@@ -63,16 +73,24 @@ export default function Settings() {
         </button>
       </form>
 
-      <div className="card p-6 space-y-4">
+      <div className="card p-6 space-y-4 mb-8">
         <h2 className="font-display text-lg text-ink-900 dark:text-linen flex items-center gap-2"><DatabaseBackup size={18} /> Backup dos dados</h2>
         <p className="text-sm text-ink-500 dark:text-ink-300">
-          Seus dados ficam salvos localmente em um banco SQLite. Faça backups regulares para não perder nada — especialmente antes de reinstalar o navegador ou trocar de computador.
+          Faça backups regulares para não perder nada, especialmente antes de mudanças grandes.
         </p>
         <div className="flex flex-wrap gap-2">
           <a href={api.backup.downloadUrl()} className="btn-secondary"><Download size={15} /> Baixar banco de dados (.db)</a>
           <a href={api.backup.exportUrl()} className="btn-secondary"><Download size={15} /> Exportar tudo (.json)</a>
         </div>
       </div>
+
+      {authRequired && (
+        <div className="card p-6">
+          <button onClick={logout} className="btn-secondary text-clay-600">
+            <LogOut size={15} /> Sair deste aparelho
+          </button>
+        </div>
+      )}
     </div>
   )
 }

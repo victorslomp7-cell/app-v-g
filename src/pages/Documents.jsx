@@ -83,7 +83,7 @@ export default function Documents() {
                 <p className="text-sm font-medium text-ink-800 dark:text-linen truncate">{d.original_name}</p>
                 <p className="text-xs text-ink-400">{d.category} · {formatDate(d.uploaded_at)}{d.notes ? ` · ${d.notes}` : ''}</p>
               </div>
-              <a href={`/uploads/${d.filename}`} download={d.original_name} className="p-2 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10">
+              <a href={d.filename} download={d.original_name} className="p-2 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10">
                 <Download size={16} />
               </a>
               <button className="p-2 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(d)}><Trash2 size={16} /></button>
