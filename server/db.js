@@ -57,12 +57,9 @@ export function ensureReady() {
         .split(';')
         .map((s) => s.trim())
         .filter(Boolean)
-      // One round-trip instead of one per statement — matters a lot for a
-      // remote Turso database on a cold serverless start.
-      await client.batch(
-        statements.map((sql) => ({ sql, args: [] })),
-        'write'
-      )
+      for (const sql of statements) {
+        await client.execute(sql)
+      }
       await seedIfEmpty({ dbGet, dbAll, dbRun, dbBatch })
     })().catch((err) => {
       // Don't let one failed attempt (e.g. a transient connection hiccup on

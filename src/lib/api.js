@@ -6,11 +6,16 @@ async function request(path, options = {}) {
     ...options,
   })
   if (!res.ok) {
-    let message = `Erro ${res.status}`
+    let message = `Erro ${res.status} (${res.statusText || 'sem detalhes'})`
     try {
-      const data = await res.json()
-      message = data.error || message
-    } catch {}
+      const data = await res.clone().json()
+      if (data?.error) message = data.error
+    } catch {
+      try {
+        const text = (await res.text()).trim()
+        if (text) message = `Erro ${res.status}: ${text.slice(0, 200)}`
+      } catch {}
+    }
     throw new Error(message)
   }
   if (res.status === 204) return null
