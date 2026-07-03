@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-feature-settings: 'ss01' 1;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Fraunces', serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl2 border border-ink-900/5 bg-white/70 dark:bg-ink-900/60 backdrop-blur-sm shadow-soft;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-sage-700 text-linen hover:bg-sage-600 shadow-sm;
+  }
+  .btn-secondary {
+    @apply btn bg-transparent border border-ink-900/15 dark:border-linen/20 text-ink-800 dark:text-linen hover:bg-ink-900/5 dark:hover:bg-linen/10;
+  }
+  .btn-danger {
+    @apply btn bg-transparent text-clay-700 dark:text-clay-300 hover:bg-clay-500/10;
+  }
+  .input {
+    @apply w-full rounded-lg border border-ink-900/15 dark:border-linen/15 bg-white dark:bg-ink-900 px-3 py-2 text-sm text-ink-900 dark:text-linen placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-sage-500/50 focus:border-sage-500 transition-colors;
+  }
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-300 mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .page-title {
+    @apply font-display text-3xl md:text-4xl text-ink-900 dark:text-linen;
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(66, 87, 55, 0.25); border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
