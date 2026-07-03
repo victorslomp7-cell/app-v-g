@@ -72,8 +72,8 @@ export default function Gifts() {
                 <button className="text-xs text-sage-700 dark:text-sage-300 hover:underline" onClick={() => toggleStatus(g)}>
                   {g.status === 'presenteado' ? 'marcar como desejado' : 'marcar como presenteado'}
                 </button>
-                <button className="ml-auto p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEdit(g)}><Pencil size={14} /></button>
-                <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(g)}><Trash2 size={14} /></button>
+                <button className="ml-auto p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEdit(g)}><Pencil size={14} /></button>
+                <button className="p-2.5 -m-1 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(g)}><Trash2 size={14} /></button>
               </div>
             </div>
           ))}

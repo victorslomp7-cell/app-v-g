@@ -176,8 +176,8 @@ export default function Budget() {
             <div key={c.id} className="flex items-center gap-3 px-5 py-3 text-sm">
               <span className="flex-1 font-medium text-ink-800 dark:text-linen">{c.name}</span>
               <span className="text-ink-500 dark:text-ink-300">{formatCurrency(spentByCategory[c.id] || 0)} / {formatCurrency(c.planned_amount)}</span>
-              <button className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEditCat(c)}><Pencil size={14} /></button>
-              <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => removeCat(c)}><Trash2 size={14} /></button>
+              <button className="p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEditCat(c)}><Pencil size={14} /></button>
+              <button className="p-2.5 -m-1 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => removeCat(c)}><Trash2 size={14} /></button>
             </div>
           ))}
           {categories.length === 0 && <p className="px-5 py-4 text-sm text-ink-400">Nenhuma categoria cadastrada.</p>}
@@ -195,15 +195,15 @@ export default function Budget() {
           <div className="card divide-y divide-ink-900/5 dark:divide-linen/10">
             {expenses.map((e) => (
               <div key={e.id} className="flex items-center gap-3 px-5 py-3">
-                <input type="checkbox" checked={e.status === 'pago'} onChange={() => toggleExpPaid(e)} className="h-4 w-4 accent-sage-700 shrink-0" />
+                <input type="checkbox" checked={e.status === 'pago'} onChange={() => toggleExpPaid(e)} className="h-5 w-5 accent-sage-700 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ink-800 dark:text-linen truncate">{e.description}</p>
                   <p className="text-xs text-ink-400">{categoryName(e.category_id)} {e.date ? `· ${formatDate(e.date)}` : ''}</p>
                 </div>
                 <Badge tone={e.status === 'pago' ? 'sage' : 'ochre'}>{e.status === 'pago' ? 'Pago' : 'Pendente'}</Badge>
                 <span className="text-sm font-medium text-ink-700 dark:text-linen w-24 text-right shrink-0">{formatCurrency(e.amount)}</span>
-                <button className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEditExp(e)}><Pencil size={14} /></button>
-                <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => removeExp(e)}><Trash2 size={14} /></button>
+                <button className="p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEditExp(e)}><Pencil size={14} /></button>
+                <button className="p-2.5 -m-1 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => removeExp(e)}><Trash2 size={14} /></button>
               </div>
             ))}
           </div>

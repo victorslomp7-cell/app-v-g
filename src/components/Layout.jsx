@@ -50,7 +50,7 @@ function ThemeToggle() {
         <button
           key={o.value}
           onClick={() => update({ theme: o.value })}
-          className={`rounded-full p-1.5 transition-colors ${
+          className={`rounded-full p-2 transition-colors ${
             settings.theme === o.value
               ? 'bg-sage-700 text-linen'
               : 'text-ink-500 dark:text-ink-300 hover:bg-ink-900/5 dark:hover:bg-linen/10'
@@ -72,8 +72,8 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex bg-linen dark:bg-ink-950">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col border-r border-ink-900/10 dark:border-linen/10 bg-white/60 dark:bg-ink-900/40 backdrop-blur-sm">
+      {/* Desktop sidebar — from lg (1024px) up, so iPad portrait still gets the touch-optimized bottom nav */}
+      <aside className="hidden lg:flex lg:w-64 lg:flex-col border-r border-ink-900/10 dark:border-linen/10 bg-white/60 dark:bg-ink-900/40 backdrop-blur-sm">
         <div className="px-6 py-7 flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sage-700 text-linen">
             <Heart size={16} fill="currentColor" />
@@ -118,27 +118,33 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-linen/90 dark:bg-ink-950/90 backdrop-blur-sm border-b border-ink-900/10 dark:border-linen/10">
+      {/* Mobile/tablet top bar */}
+      <div
+        className="lg:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-linen/90 dark:bg-ink-950/90 backdrop-blur-sm border-b border-ink-900/10 dark:border-linen/10"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sage-700 text-linen">
             <Heart size={14} fill="currentColor" />
           </div>
           <p className="font-display text-base text-ink-900 dark:text-linen">{coupleLabel}</p>
         </div>
-        <button onClick={() => setMobileOpen(true)} className="p-2 text-ink-700 dark:text-linen">
+        <button onClick={() => setMobileOpen(true)} className="p-2.5 -m-1 text-ink-700 dark:text-linen">
           <Menu size={22} />
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile/tablet drawer */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
+        <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-ink-950/50" onClick={() => setMobileOpen(false)} />
-          <div className="relative ml-auto h-full w-72 bg-linen dark:bg-ink-950 border-l border-ink-900/10 dark:border-linen/10 p-5 flex flex-col animate-in slide-in-from-right">
+          <div
+            className="relative ml-auto h-full w-72 sm:w-80 bg-linen dark:bg-ink-950 border-l border-ink-900/10 dark:border-linen/10 p-5 flex flex-col animate-in slide-in-from-right"
+            style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+          >
             <div className="flex items-center justify-between mb-6">
               <p className="font-display text-lg text-ink-900 dark:text-linen">Menu</p>
-              <button onClick={() => setMobileOpen(false)} className="p-1 text-ink-600 dark:text-linen">
+              <button onClick={() => setMobileOpen(false)} className="p-2.5 -m-1.5 text-ink-600 dark:text-linen">
                 <X size={20} />
               </button>
             </div>
@@ -179,19 +185,22 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      <main className="flex-1 min-w-0 pt-16 pb-20 md:pt-0 md:pb-0">
-        <div className="mx-auto max-w-6xl px-4 md:px-8 py-6 md:py-10">{children}</div>
+      <main className="flex-1 min-w-0 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pt-0 lg:pb-0">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 lg:py-10">{children}</div>
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-ink-900/90 backdrop-blur-sm border-t border-ink-900/10 dark:border-linen/10 flex items-stretch">
+      {/* Mobile/tablet bottom nav */}
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-ink-900/90 backdrop-blur-sm border-t border-ink-900/10 dark:border-linen/10 flex items-stretch"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {MOBILE_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-medium ${
+              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[3.25rem] text-[11px] font-medium ${
                 isActive ? 'text-sage-700 dark:text-sage-300' : 'text-ink-400 dark:text-ink-400'
               }`
             }
@@ -202,7 +211,7 @@ export default function Layout({ children }) {
         ))}
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-medium text-ink-400"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[3.25rem] text-[11px] font-medium text-ink-400"
         >
           <Menu size={19} />
           Mais

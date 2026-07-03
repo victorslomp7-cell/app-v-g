@@ -134,10 +134,10 @@ export default function Vendors() {
                   {v.payments.length > 0 && <p>Pago: {formatCurrency(paid)} {v.agreed_value ? `de ${formatCurrency(v.agreed_value)}` : ''}</p>}
                 </div>
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ink-900/5 dark:border-linen/10">
-                  <button className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={(e) => { e.stopPropagation(); openEdit(v) }}>
+                  <button className="p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={(e) => { e.stopPropagation(); openEdit(v) }}>
                     <Pencil size={14} />
                   </button>
-                  <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={(e) => { e.stopPropagation(); remove(v) }}>
+                  <button className="p-2.5 -m-1 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={(e) => { e.stopPropagation(); remove(v) }}>
                     <Trash2 size={14} />
                   </button>
                   {v.attachments.length > 0 && (
@@ -212,13 +212,13 @@ export default function Vendors() {
               <div className="space-y-2 mb-3">
                 {detail.payments.map((p) => (
                   <div key={p.id} className="flex items-center gap-3 rounded-lg border border-ink-900/10 dark:border-linen/10 px-3 py-2">
-                    <input type="checkbox" checked={!!p.paid} onChange={() => togglePaid(p)} className="h-4 w-4 accent-sage-700" />
+                    <input type="checkbox" checked={!!p.paid} onChange={() => togglePaid(p)} className="h-5 w-5 accent-sage-700 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${p.paid ? 'text-ink-400 line-through' : 'text-ink-800 dark:text-linen'}`}>{p.description || 'Parcela'}</p>
                       <p className="text-xs text-ink-400">{p.due_date ? `venc. ${formatDate(p.due_date)}` : ''} {p.paid && p.paid_date ? `· pago em ${formatDate(p.paid_date)}` : ''}</p>
                     </div>
                     <span className="text-sm font-medium text-ink-700 dark:text-linen">{formatCurrency(p.amount)}</span>
-                    <button onClick={() => removePayment(p)} className="text-clay-600 p-1"><X size={14} /></button>
+                    <button onClick={() => removePayment(p)} className="text-clay-600 p-2 -m-1"><X size={14} /></button>
                   </div>
                 ))}
                 {detail.payments.length === 0 && <p className="text-sm text-ink-400">Nenhum pagamento registrado.</p>}
@@ -248,7 +248,7 @@ export default function Vendors() {
                     <a href={`/uploads/${a.filename}`} target="_blank" rel="noreferrer" className="text-sm text-sage-700 dark:text-sage-300 hover:underline truncate">
                       {a.original_name}
                     </a>
-                    <button onClick={() => removeAttachment(a)} className="text-clay-600 p-1"><X size={14} /></button>
+                    <button onClick={() => removeAttachment(a)} className="text-clay-600 p-2 -m-1"><X size={14} /></button>
                   </div>
                 ))}
                 {detail.attachments.length === 0 && <p className="text-sm text-ink-400">Nenhum arquivo anexado.</p>}

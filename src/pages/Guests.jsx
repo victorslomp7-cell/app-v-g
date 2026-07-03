@@ -242,10 +242,10 @@ export default function Guests() {
                 <span className="text-ink-500 dark:text-ink-300 truncate hidden md:block">{g.dietary_restriction || '—'}</span>
                 <span className="text-ink-500 dark:text-ink-300 hidden md:block">{tableName(g.table_id) || '—'}</span>
                 <span className="flex justify-end gap-1">
-                  <button className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEdit(g)}>
+                  <button className="p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEdit(g)}>
                     <Pencil size={15} />
                   </button>
-                  <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(g)}>
+                  <button className="p-2.5 -m-1 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(g)}>
                     <Trash2 size={15} />
                   </button>
                 </span>

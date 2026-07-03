@@ -36,9 +36,16 @@ export default function PhotoSlot({ settingKey, className = '', rounded = 'round
           <span className="text-xs font-medium">{placeholder || 'Adicionar foto'}</span>
         </div>
       )}
-      <div className="absolute inset-0 flex items-center justify-center bg-ink-950/0 group-hover:bg-ink-950/30 transition-colors opacity-0 group-hover:opacity-100">
-        {loading ? <Loader2 size={20} className="animate-spin text-linen" /> : <Camera size={20} className="text-linen" />}
-      </div>
+      {url && (
+        <div className="absolute inset-0 flex items-center justify-center bg-ink-950/0 lg:group-hover:bg-ink-950/30 transition-colors">
+          {loading && <Loader2 size={20} className="animate-spin text-linen" />}
+        </div>
+      )}
+      {url && !loading && (
+        <div className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/60 text-linen lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+          <Camera size={14} />
+        </div>
+      )}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </button>
   )

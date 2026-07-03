@@ -23,11 +23,11 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
       >
         <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-ink-900/10 dark:border-linen/10 bg-linen/95 dark:bg-ink-900/95 backdrop-blur-sm">
           <h3 className="font-display text-xl text-ink-900 dark:text-linen">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10">
+          <button onClick={onClose} className="p-2.5 -m-1 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10">
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-5">{children}</div>
       </div>
     </div>
   )

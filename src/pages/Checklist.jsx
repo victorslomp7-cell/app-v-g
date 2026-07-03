@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, GripVertical, ListChecks } from 'lucide-react'
+import { Plus, Pencil, Trash2, ListChecks } from 'lucide-react'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  useDroppable,
+  DragOverlay,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { api } from '../lib/api.js'
 import { PageHeader, EmptyState, ProgressBar } from '../components/ui.jsx'
 import Modal from '../components/Modal.jsx'
+import SortableRow from '../components/dnd/SortableRow.jsx'
+import DragHandle from '../components/dnd/DragHandle.jsx'
 import { formatDate, isOverdue } from '../lib/format.js'
 
 const PHASES = [
@@ -16,13 +29,78 @@ const PHASES = [
 
 const emptyTask = { title: '', category: '', phase: '12m', due_date: '', notes: '' }
 
+function findContainer(id, tasks) {
+  if (typeof id === 'string' && id.startsWith('phase:')) return id.slice(6)
+  return tasks.find((t) => t.id === id)?.phase
+}
+
+function TaskRow({ t, handleProps, onToggle, onEdit, onRemove }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 group">
+      <DragHandle handleProps={handleProps} />
+      <input
+        type="checkbox"
+        checked={!!t.completed}
+        onChange={() => onToggle(t)}
+        className="h-5 w-5 rounded accent-sage-700 shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-medium ${t.completed ? 'line-through text-ink-400' : 'text-ink-800 dark:text-linen'}`}>
+          {t.title}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {t.category && <span className="text-xs text-ink-400">{t.category}</span>}
+          {t.due_date && (
+            <span className={`text-xs ${isOverdue(t.due_date, t.completed) ? 'text-clay-600 font-medium' : 'text-ink-400'}`}>
+              {isOverdue(t.due_date, t.completed) ? 'Atrasada · ' : ''}
+              {formatDate(t.due_date)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0">
+        <button className="p-2 -m-0.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => onEdit(t)}>
+          <Pencil size={14} />
+        </button>
+        <button className="p-2 -m-0.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => onRemove(t)}>
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PhaseColumn({ phase, items, onNew, children }) {
+  const { setNodeRef } = useDroppable({ id: `phase:${phase.key}` })
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-display text-lg text-ink-900 dark:text-linen">{phase.label}</h2>
+        <button className="text-xs text-sage-700 dark:text-sage-300 hover:underline p-1 -m-1" onClick={() => onNew(phase.key)}>
+          + adicionar
+        </button>
+      </div>
+      <div ref={setNodeRef} className="card divide-y divide-ink-900/5 dark:divide-linen/10 min-h-[3.5rem]">
+        <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          {items.length === 0 && <p className="px-5 py-4 text-sm text-ink-400">Nenhuma tarefa nesta fase.</p>}
+          {children}
+        </SortableContext>
+      </div>
+    </section>
+  )
+}
+
 export default function Checklist() {
   const [tasks, setTasks] = useState([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyTask)
-  const [dragId, setDragId] = useState(null)
-  const [activePhase, setActivePhase] = useState(PHASES[0].key)
+  const [activeId, setActiveId] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   const load = () => api.tasks.list().then(setTasks)
   useEffect(() => {
@@ -32,9 +110,10 @@ export default function Checklist() {
   const grouped = useMemo(() => {
     const map = Object.fromEntries(PHASES.map((p) => [p.key, []]))
     tasks.forEach((t) => map[t.phase]?.push(t))
-    Object.values(map).forEach((list) => list.sort((a, b) => a.position - b.position))
     return map
   }, [tasks])
+
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null
 
   const overallProgress = useMemo(() => {
     if (!tasks.length) return 0
@@ -72,21 +151,46 @@ export default function Checklist() {
     load()
   }
 
-  const onDrop = async (phaseKey, targetTask) => {
-    if (!dragId) return
-    const list = grouped[phaseKey].filter((t) => t.id !== dragId)
-    const dragged = tasks.find((t) => t.id === dragId)
-    if (!dragged) return
-    const targetIndex = targetTask ? list.findIndex((t) => t.id === targetTask.id) : list.length
-    list.splice(targetIndex === -1 ? list.length : targetIndex, 0, { ...dragged, phase: phaseKey })
-    const items = list.map((t, i) => ({ id: t.id, phase: phaseKey, position: i }))
-    setDragId(null)
+  const handleDragStart = (event) => setActiveId(event.active.id)
+
+  const handleDragOver = (event) => {
+    const { active, over } = event
+    if (!over) return
+    const activeContainer = findContainer(active.id, tasks)
+    const overContainer = findContainer(over.id, tasks)
+    if (!activeContainer || !overContainer || activeContainer === overContainer) return
+
     setTasks((prev) => {
-      const others = prev.filter((t) => !items.some((i) => i.id === t.id))
-      return [...others, ...items.map((i) => ({ ...prev.find((t) => t.id === i.id), ...i }))]
+      const overItems = prev.filter((t) => t.phase === overContainer && t.id !== active.id)
+      const overIndex = overItems.findIndex((t) => t.id === over.id)
+      const insertAt = overIndex >= 0 ? overIndex : overItems.length
+      const moved = { ...prev.find((t) => t.id === active.id), phase: overContainer }
+      overItems.splice(insertAt, 0, moved)
+      const rest = prev.filter((t) => t.phase !== overContainer && t.id !== active.id)
+      return [...rest, ...overItems]
     })
-    await api.tasks.reorder(items)
-    load()
+  }
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over) return
+    const overContainer = findContainer(over.id, tasks)
+    if (!overContainer) return
+
+    setTasks((prev) => {
+      const containerItems = prev.filter((t) => t.phase === overContainer)
+      const activeIndex = containerItems.findIndex((t) => t.id === active.id)
+      const overIndex = containerItems.findIndex((t) => t.id === over.id)
+      let reordered = containerItems
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+        reordered = arrayMove(containerItems, activeIndex, overIndex)
+      }
+      const others = prev.filter((t) => t.phase !== overContainer)
+      const items = reordered.map((t, i) => ({ id: t.id, phase: overContainer, position: i }))
+      api.tasks.reorder(items).catch(load)
+      return [...others, ...reordered]
+    })
   }
 
   return (
@@ -96,7 +200,7 @@ export default function Checklist() {
         title="Checklist"
         description="Organizado por prazo, do planejamento inicial ao grande dia."
         actions={
-          <button className="btn-primary" onClick={() => openNew(activePhase)}>
+          <button className="btn-primary" onClick={() => openNew(PHASES[0].key)}>
             <Plus size={15} /> Tarefa
           </button>
         }
@@ -112,70 +216,34 @@ export default function Checklist() {
       {tasks.length === 0 ? (
         <EmptyState icon={ListChecks} title="Nenhuma tarefa cadastrada" description="Adicione sua primeira tarefa para começar a organizar o casamento." />
       ) : (
-        <div className="space-y-8">
-          {PHASES.map((phase) => (
-            <section key={phase.key} onFocus={() => setActivePhase(phase.key)}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display text-lg text-ink-900 dark:text-linen">{phase.label}</h2>
-                <button className="text-xs text-sage-700 dark:text-sage-300 hover:underline" onClick={() => openNew(phase.key)}>
-                  + adicionar
-                </button>
-              </div>
-              <div
-                className="card divide-y divide-ink-900/5 dark:divide-linen/10 min-h-[3rem]"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => onDrop(phase.key, null)}
-              >
-                {grouped[phase.key].length === 0 && (
-                  <p className="px-5 py-4 text-sm text-ink-400">Nenhuma tarefa nesta fase.</p>
-                )}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="space-y-8">
+            {PHASES.map((phase) => (
+              <PhaseColumn key={phase.key} phase={phase} items={grouped[phase.key]} onNew={openNew}>
                 {grouped[phase.key].map((t) => (
-                  <div
-                    key={t.id}
-                    draggable
-                    onDragStart={() => setDragId(t.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.stopPropagation()
-                      onDrop(phase.key, t)
-                    }}
-                    className="flex items-center gap-3 px-4 py-3 group"
-                  >
-                    <GripVertical size={15} className="text-ink-300 cursor-grab shrink-0" />
-                    <input
-                      type="checkbox"
-                      checked={!!t.completed}
-                      onChange={() => toggle(t)}
-                      className="h-4 w-4 rounded accent-sage-700 shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium ${t.completed ? 'line-through text-ink-400' : 'text-ink-800 dark:text-linen'}`}>
-                        {t.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {t.category && <span className="text-xs text-ink-400">{t.category}</span>}
-                        {t.due_date && (
-                          <span className={`text-xs ${isOverdue(t.due_date, t.completed) ? 'text-clay-600 font-medium' : 'text-ink-400'}`}>
-                            {isOverdue(t.due_date, t.completed) ? 'Atrasada · ' : ''}
-                            {formatDate(t.due_date)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button className="p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 dark:hover:bg-linen/10" onClick={() => openEdit(t)}>
-                        <Pencil size={14} />
-                      </button>
-                      <button className="p-1.5 rounded-full text-clay-600 hover:bg-clay-500/10" onClick={() => remove(t)}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
+                  <SortableRow key={t.id} id={t.id}>
+                    {({ handleProps }) => (
+                      <TaskRow t={t} handleProps={handleProps} onToggle={toggle} onEdit={openEdit} onRemove={remove} />
+                    )}
+                  </SortableRow>
                 ))}
+              </PhaseColumn>
+            ))}
+          </div>
+          <DragOverlay>
+            {activeTask && (
+              <div className="card px-4 py-3 shadow-xl text-sm font-medium text-ink-800 dark:text-linen">
+                {activeTask.title}
               </div>
-            </section>
-          ))}
-        </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Editar tarefa' : 'Nova tarefa'}>
