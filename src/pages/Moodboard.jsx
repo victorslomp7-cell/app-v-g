@@ -13,6 +13,7 @@ export default function Moodboard() {
   const [caption, setCaption] = useState('')
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [filter, setFilter] = useState('all')
   const [lightbox, setLightbox] = useState(null)
 
@@ -31,12 +32,15 @@ export default function Moodboard() {
     e.preventDefault()
     if (!file) return
     setUploading(true)
+    setUploadError('')
     try {
       await api.moodboard.create(category, caption, file)
       setModalOpen(false)
       setCaption('')
       setFile(null)
       load()
+    } catch (err) {
+      setUploadError(err.message || 'Não foi possível enviar a imagem.')
     } finally {
       setUploading(false)
     }
@@ -55,7 +59,7 @@ export default function Moodboard() {
         eyebrow="Referências visuais"
         title="Mural de inspiração"
         description="Guarde imagens de decoração, buffet, vestido e traje por categoria."
-        actions={<button className="btn-primary" onClick={() => setModalOpen(true)}><Plus size={15} /> Imagem</button>}
+        actions={<button className="btn-primary" onClick={() => { setUploadError(''); setModalOpen(true) }}><Plus size={15} /> Imagem</button>}
       />
 
       <div className="flex flex-wrap gap-2 mb-6">
@@ -105,6 +109,7 @@ export default function Moodboard() {
             <label className="label">Imagem</label>
             <input required type="file" accept="image/*" className="input" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </div>
+          {uploadError && <p className="text-sm text-clay-600">{uploadError}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
             <button type="submit" disabled={uploading} className="btn-primary">{uploading ? 'Enviando…' : 'Salvar'}</button>

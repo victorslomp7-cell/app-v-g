@@ -14,6 +14,7 @@ export default function Documents() {
   const [notes, setNotes] = useState('')
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [filter, setFilter] = useState('all')
 
   const load = () => api.documents.list().then(setDocs)
@@ -31,12 +32,15 @@ export default function Documents() {
     e.preventDefault()
     if (!file) return
     setUploading(true)
+    setUploadError('')
     try {
       await api.documents.create(category, notes, file)
       setModalOpen(false)
       setNotes('')
       setFile(null)
       load()
+    } catch (err) {
+      setUploadError(err.message || 'Não foi possível enviar o documento.')
     } finally {
       setUploading(false)
     }
@@ -56,7 +60,7 @@ export default function Documents() {
         eyebrow="Papelada do casamento"
         title="Documentos importantes"
         description="Certidões, contratos e comprovantes organizados por categoria."
-        actions={<button className="btn-primary" onClick={() => setModalOpen(true)}><Plus size={15} /> Documento</button>}
+        actions={<button className="btn-primary" onClick={() => { setUploadError(''); setModalOpen(true) }}><Plus size={15} /> Documento</button>}
       />
 
       <div className="flex flex-wrap gap-2 mb-6">
@@ -109,6 +113,7 @@ export default function Documents() {
             <label className="label">Arquivo</label>
             <input required type="file" className="input" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </div>
+          {uploadError && <p className="text-sm text-clay-600">{uploadError}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
             <button type="submit" disabled={uploading} className="btn-primary">{uploading ? 'Enviando…' : 'Salvar'}</button>

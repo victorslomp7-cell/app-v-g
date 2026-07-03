@@ -25,6 +25,7 @@ export default function Vendors() {
   const [detail, setDetail] = useState(null)
   const [paymentForm, setPaymentForm] = useState(emptyPayment)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [attachmentError, setAttachmentError] = useState('')
 
   const load = () => api.vendors.list().then((data) => {
     setVendors(data)
@@ -76,9 +77,15 @@ export default function Vendors() {
   const uploadFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    await api.vendors.uploadAttachment(detail.id, file)
-    e.target.value = ''
-    load()
+    setAttachmentError('')
+    try {
+      await api.vendors.uploadAttachment(detail.id, file)
+      load()
+    } catch (err) {
+      setAttachmentError(err.message || 'Não foi possível enviar o arquivo.')
+    } finally {
+      e.target.value = ''
+    }
   }
 
   const removeAttachment = async (a) => {
@@ -121,7 +128,7 @@ export default function Vendors() {
           {filtered.map((v) => {
             const paid = v.payments.reduce((s, p) => s + (p.paid ? p.amount : 0), 0)
             return (
-              <div key={v.id} className="card p-5 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setDetail(v)}>
+              <div key={v.id} className="card p-5 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setAttachmentError(''); setDetail(v) }}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-display text-lg text-ink-900 dark:text-linen truncate">{v.name}</p>
@@ -257,6 +264,7 @@ export default function Vendors() {
                 <Upload size={15} /> Anexar arquivo
                 <input type="file" className="hidden" onChange={uploadFile} accept=".pdf,image/*" />
               </label>
+              {attachmentError && <p className="text-sm text-clay-600 mt-2">{attachmentError}</p>}
             </div>
           </div>
         )}

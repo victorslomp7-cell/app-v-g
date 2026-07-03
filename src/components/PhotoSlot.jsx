@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Camera, Loader2 } from 'lucide-react'
+import { Camera, Loader2, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useSettings } from '../lib/SettingsContext.jsx'
 
@@ -7,15 +7,19 @@ export default function PhotoSlot({ settingKey, className = '', rounded = 'round
   const { settings, refresh } = useSettings()
   const inputRef = useRef(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const url = settings?.[settingKey]
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     setLoading(true)
+    setError('')
     try {
       await api.settings.uploadPhoto(settingKey, file)
       await refresh()
+    } catch (err) {
+      setError(err.message || 'Não foi possível enviar a foto.')
     } finally {
       setLoading(false)
       e.target.value = ''
@@ -44,6 +48,12 @@ export default function PhotoSlot({ settingKey, className = '', rounded = 'round
       {url && !loading && (
         <div className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/60 text-linen lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
           <Camera size={14} />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-x-0 bottom-0 flex items-start gap-1.5 bg-clay-600/95 px-2.5 py-2 text-left">
+          <TriangleAlert size={13} className="text-linen shrink-0 mt-0.5" />
+          <span className="text-[11px] leading-snug text-linen">{error}</span>
         </div>
       )}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
