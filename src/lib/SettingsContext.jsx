@@ -6,13 +6,21 @@ const SettingsContext = createContext(null)
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
-    api.settings
+  const load = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    return api.settings
       .get()
       .then(setSettings)
+      .catch((err) => setError(err.message || 'Não foi possível carregar os dados.'))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   useEffect(() => {
     if (!settings) return
@@ -35,8 +43,24 @@ export function SettingsProvider({ children }) {
     return updated
   }, [])
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linen dark:bg-ink-950 px-5">
+        <div className="card w-full max-w-sm p-7 text-center space-y-3">
+          <p className="font-display text-lg text-ink-900 dark:text-linen">Não deu para carregar o V&amp;G</p>
+          <p className="text-sm text-ink-500 dark:text-ink-300">{error}</p>
+          <button onClick={load} className="btn-primary">
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) return null
+
   return (
-    <SettingsContext.Provider value={{ settings, loading, update, refresh: () => api.settings.get().then(setSettings) }}>
+    <SettingsContext.Provider value={{ settings, loading, update, refresh: load }}>
       {children}
     </SettingsContext.Provider>
   )

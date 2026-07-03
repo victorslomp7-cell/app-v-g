@@ -16,7 +16,10 @@ export default function Settings() {
   }, [settings])
 
   useEffect(() => {
-    api.auth.status().then((s) => setAuthRequired(s.authRequired))
+    api.auth
+      .status()
+      .then((s) => setAuthRequired(!!s.authRequired))
+      .catch(() => setAuthRequired(false))
   }, [])
 
   const logout = async () => {
