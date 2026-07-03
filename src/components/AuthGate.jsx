@@ -3,15 +3,27 @@ import { Lock, Heart } from 'lucide-react'
 
 export default function AuthGate({ children }) {
   const [status, setStatus] = useState(null)
+  const [statusError, setStatusError] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const checkStatus = () => {
+    setStatusError('')
     fetch('/api/auth/status')
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          let message = `Erro ${r.status}`
+          try {
+            const data = await r.json()
+            if (data?.error) message = data.error
+          } catch {}
+          throw new Error(message)
+        }
+        return r.json()
+      })
       .then(setStatus)
-      .catch(() => setStatus({ authRequired: false, authenticated: true }))
+      .catch((err) => setStatusError(err.message || 'Não foi possível verificar o login.'))
   }
 
   useEffect(() => {
@@ -38,6 +50,20 @@ export default function AuthGate({ children }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (statusError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linen dark:bg-ink-950 px-5">
+        <div className="card w-full max-w-sm p-7 text-center space-y-3">
+          <p className="font-display text-lg text-ink-900 dark:text-linen">Não deu para carregar o V&amp;G</p>
+          <p className="text-sm text-ink-500 dark:text-ink-300">{statusError}</p>
+          <button onClick={checkStatus} className="btn-primary">
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (!status) return null

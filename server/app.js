@@ -27,17 +27,9 @@ app.use(express.json({ limit: '15mb' }))
 // Local disk fallback for uploads (no-op path when Vercel Blob is configured).
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
-// Make sure schema + seed data exist before handling any request (cheap no-op after the first call).
-app.use(async (req, res, next) => {
-  try {
-    await ensureReady()
-    next()
-  } catch (err) {
-    console.error('Falha ao preparar o banco de dados', err)
-    res.status(500).json({ error: 'Erro ao conectar ao banco de dados' })
-  }
-})
-
+// Auth routes never touch the database, so they're registered before the
+// ensureReady() gate below — a slow/failed DB connection should never be
+// able to make the login screen itself unreachable.
 app.post('/api/auth/login', (req, res) => {
   if (!isAuthEnabled()) return res.json({ ok: true })
   if (req.body.password !== process.env.APP_PASSWORD) {
@@ -59,6 +51,18 @@ app.post('/api/auth/logout', (req, res) => {
 })
 
 app.use('/api', authGate)
+
+// Make sure schema + seed data exist before handling any other request
+// (cheap no-op after the first call).
+app.use(async (req, res, next) => {
+  try {
+    await ensureReady()
+    next()
+  } catch (err) {
+    console.error('Falha ao preparar o banco de dados', err)
+    res.status(500).json({ error: 'Erro ao conectar ao banco de dados' })
+  }
+})
 
 app.use('/api/settings', settingsRoutes)
 app.use('/api/guests', guestsRoutes)
