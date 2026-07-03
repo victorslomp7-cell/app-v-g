@@ -6,12 +6,21 @@ import { mkdirSync, existsSync, unlinkSync } from 'fs'
 import { put, del } from '@vercel/blob'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uploadsDir = path.join(__dirname, 'uploads')
+// On Vercel the project folder is read-only — only /tmp is writable (and it
+// doesn't survive cold starts), so fall back there instead of crashing if
+// BLOB_READ_WRITE_TOKEN is ever missing on a deployment.
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'uploads')
 
 // When BLOB_READ_WRITE_TOKEN is set (deployed on Vercel) files go to Vercel Blob
 // storage and we keep files only in memory during the request. Otherwise
 // (local `npm run dev`, no cloud account needed) they're written to disk.
 export const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN
+
+if (process.env.VERCEL && !useBlob) {
+  console.error(
+    '[V&G upload] BLOB_READ_WRITE_TOKEN não está definida nesta implantação — arquivos enviados vão para /tmp e NÃO persistem entre execuções. Confira Settings > Environment Variables na Vercel.'
+  )
+}
 
 const storage = useBlob
   ? multer.memoryStorage()

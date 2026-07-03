@@ -13,11 +13,24 @@ const remoteUrl = process.env.TURSO_DATABASE_URL
 let url = remoteUrl
 let authToken = process.env.TURSO_AUTH_TOKEN
 
+console.log(
+  `[V&G db] VERCEL=${process.env.VERCEL ?? '(unset)'} TURSO_DATABASE_URL=${remoteUrl ? 'set (' + remoteUrl.slice(0, 15) + '…)' : 'MISSING'} TURSO_AUTH_TOKEN=${authToken ? 'set' : 'MISSING'}`
+)
+
 if (!remoteUrl) {
-  const dataDir = join(__dirname, 'data')
+  // On Vercel the project folder is read-only — only /tmp is writable, and it
+  // doesn't survive cold starts. This keeps the app usable (with a throwaway,
+  // non-persistent database) instead of crashing outright while the real
+  // TURSO_DATABASE_URL variable gets sorted out.
+  const dataDir = process.env.VERCEL ? '/tmp' : join(__dirname, 'data')
   mkdirSync(dataDir, { recursive: true })
   url = `file:${join(dataDir, 'vg.db')}`
   authToken = undefined
+  if (process.env.VERCEL) {
+    console.error(
+      '[V&G db] TURSO_DATABASE_URL não está definida nesta implantação — usando um banco temporário em /tmp que NÃO guarda dados entre execuções. Confira Settings > Environment Variables na Vercel.'
+    )
+  }
 }
 
 export const client = createClient({ url, authToken })
